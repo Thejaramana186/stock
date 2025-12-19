@@ -266,6 +266,29 @@ async def company_detail(symbol: str, request: Request, db: Session = Depends(ge
     )
 
 
+@app.get("/api/company/{symbol}/history", response_class=JSONResponse)
+def company_history(symbol: str, db: Session = Depends(get_db)):
+    company = crud.get_company_by_symbol(db, symbol)
+    if not company:
+        return []
+
+    rows = (
+        db.query(DailyOHLC)
+        .filter(DailyOHLC.company_id == company.id)
+        .order_by(DailyOHLC.date)
+        .all()
+    )
+
+    return [
+        {
+            "date": r.date.strftime("%Y-%m-%d"),  # IMPORTANT
+            "open": float(r.open),
+            "high": float(r.high),
+            "low": float(r.low),
+            "close": float(r.close),
+        }
+        for r in rows
+    ]
 
 
 @app.post("/api/fetch-company/{symbol}")
